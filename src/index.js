@@ -1,23 +1,59 @@
-import { AwsClient } from 'aws4fetch'
-
-const aws = new AwsClient({
-  accessKeyId: 'XXXX',
-  secretAccessKey: 'XXXX'
-})
+window = { document: { createElementNS: () => { return {} } } };
+navigator = {};
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event))
-});a``
+});
+
+function _arrayBufferToBase64(buffer) {
+  var binary = '';
+  var bytes = new Uint8Array(buffer);
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
 
 async function handleRequest(event) {
 
-  var request = event.request;
+  var jsPDF = __webpack_require__(1)
 
-  var url = new URL(event.request.url);
+  var doc = new jsPDF({
+    "orientation": "p",
+    "unit": "mm",
+    "format": "a4"
+  });
 
-  var bucketHostname = 'example.s3.ap-southeast-2.amazonaws.com';
-  url.hostname = bucketHostname;
+  var xmargin = 25.4;
+  var ymargin = 25.4;
 
-  return await aws.fetch(url);
+  var imgResponse = await fetch('https://regmedia.co.uk/2017/06/26/cloudflarelogo.jpg', {
+    "cf": {
+      "cacheTtl": 9999999999999999999
+    }
+  });
+
+  var imgData = _arrayBufferToBase64(await imgResponse.arrayBuffer());
+  doc.addImage(imgData, 'JPEG', xmargin, ymargin);
+
+  var date = new Date();
+  var message = 'Hi, This PDF was generated in a Cloudflare Worker from ' + event.request.cf.colo + ' at ' + date + '.';
+
+  doc.setFontSize(12)
+  doc.text(message, xmargin + 0, ymargin + 100, {
+    "maxWidth": 159.2
+  });
+
+  doc.text('The URL you entered was: ' + event.request.url, xmargin + 0, ymargin + 120);
+
+  var output = doc.output('arraybuffer');
+
+  var headers = new Headers();
+  headers.set('Content-Type', '	application/pdf');
+
+  return new Response(output, {
+    "headers": headers
+  });
 
 }
