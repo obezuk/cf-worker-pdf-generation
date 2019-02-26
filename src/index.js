@@ -17,7 +17,7 @@ function _arrayBufferToBase64(buffer) {
 
 async function handleRequest(event) {
 
-  var jsPDF = __webpack_require__(1)
+  var jsPDF = require('jspdf/dist/jspdf.node.min');
 
   var doc = new jsPDF({
     "orientation": "p",
